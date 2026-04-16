@@ -6,4 +6,7 @@ db
 
 .env
 
-APU
+API
+
+prompts.py
+
