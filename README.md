@@ -65,10 +65,10 @@ Place your technical manuals ( .md format ) and an empty memoria.md inside backe
 
 Run the ingestion script to transform your text into searchable vectors:
 
-python backend/ingest.py
+    python backend/ingest.py
 3. Run VERSO
 
 Start the engine to begin the interactive session:
 
-python backend/engine.py
+    python backend/engine.py
 
