@@ -45,16 +45,16 @@ Vector Store	ChromaDB
 Orchestration	LangChain
 Format	Markdown (Structured)
 
-VERSO/
-├── backend/
-│   ├── Data/
-│   │   └── Md/
-│   │       ├── manual.md      # Static technical knowledge
-│   │       └── memoria.md    # Dynamic persistent memory
-│   ├── db/                   # ChromaDB Vector Store (Persistent)
-│   ├── ingest.py             # Database builder & synchronizer
-│   └── engine.py             # Main AI Agent & Self-Healing logic
-└── README.md
+    VERSO/
+    ├── backend/
+    │   ├── Data/
+    │   │   └── Md/
+    │   │       ├── manual.md      # Static technical knowledge
+    │   │       └── memoria.md    # Dynamic persistent memory
+    │   ├── db/                   # ChromaDB Vector Store (Persistent)
+    │   ├── ingest.py             # Database builder & synchronizer
+    │   └── engine.py             # Main AI Agent & Self-Healing logic
+    └── README.md
 
 
 Getting Started
