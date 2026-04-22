@@ -61,6 +61,11 @@ Getting Started
 1. Prepare the Knowledge
 
 Place your technical manuals ( .md format ) and an empty memoria.md inside backend/Data/Md/. Ensure you use ## for sub-headers.
+
+1.5. install the requirements 
+
+    pip install -r requirements.txt
+
 2. Build the "brain"
 
 Run the ingestion script to transform your text into searchable vectors:
