@@ -3,6 +3,7 @@ from langchain_ollama import OllamaEmbeddings, ChatOllama
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from prompts import prompt_sumarizado
 
 db_path = "./backend/db"
 memoria_path = "./backend/Data/Md/Memoria.md"
@@ -34,15 +35,9 @@ class VersoEngine:
 
         print("Verso: Sumarizando conversa para memória de longo prazo...")
         
-        prompt_soma = ChatPromptTemplate.from_template("""
-        Você é um arquivista técnico. Resuma a conversa abaixo em tópicos objetivos.
-        Extraia informações sobre quem é o usuário, seus interesses e decisões tomadas.
-        Não use introduções, vá direto aos pontos.
+        prompt_sumarizacao = ChatPromptTemplate.from_template(prompt_sumarizado)
         
-        Conversa: {historico}
-        """)
-        
-        chain = prompt_soma | self.llm | StrOutputParser()
+        chain = prompt_sumarizacao | self.llm | StrOutputParser()
         resumo = chain.invoke({"historico": historico})
         
         self.modelo_salvamento(resumo, id_conversa="Resumo_Sessao_" + os.urandom(2).hex())
@@ -95,7 +90,7 @@ if __name__ == "__main__":
         if pergunta.lower() in ["sair", "exit", "quit"]:
             if historico_sessao:
                 verso.sumarizar_e_salvar("\n".join(historico_sessao))
-            print("🌌 Verso: Memória sincronizada. Encerrando...")
+            print(" Verso: Memória sincronizada. Encerrando...")
             break
         
         resposta = verso.responder(pergunta)
