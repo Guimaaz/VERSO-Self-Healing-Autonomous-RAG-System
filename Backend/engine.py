@@ -48,9 +48,12 @@ class VersoEngine:
 
     def juiz_de_contexto(self, pergunta, contexto):
         prompt_juiz = ChatPromptTemplate.from_template("""
-        Você é um Juiz de Qualidade. Sua tarefa é avaliar se o contexto abaixo é útil para responder à pergunta.
-        Responda apenas com 'SIM' ou 'NAO'.
-        
+        Avalie se a pergunta refere-se a informações específicas de projetos, decisões anteriores ou dados contidos no manual/memória local.
+
+        - Se a resposta estiver no contexto: Responda 'USA_RAG'.
+        - Se a pergunta for geral (ciência, código, etc) e não houver nada no contexto: Responda 'GERAL'.
+        - Se for sobre o histórico do usuário/projeto mas o contexto estiver vazio: Responda 'NAO_SEI'.
+
         Pergunta: {pergunta}
         Contexto: {contexto}
         """)
@@ -62,22 +65,29 @@ class VersoEngine:
     def responder(self, pergunta):
         docs = self.buscar_conhecimento(pergunta)
         contexto_bruto = "\n".join([d.page_content for d in docs])
-        
         decisao = self.juiz_de_contexto(pergunta, contexto_bruto)
         
-        if "SIM" in decisao:
-            prompt_final = ChatPromptTemplate.from_template("""
-            Você é o sistema VERSO. Responda diretamente usando o contexto.
-            Não se apresente e não diga 'Olá' se não for a primeira interação.
-            Seja um professor direto e didático.
+        if "NAO_SEI" in decisao:
+            return "Eu entendi que você perguntou sobre algo pessoal ou do projeto, mas não encontrei esse detalhe na minha memória. Pode me dar mais contexto?"
 
-            Contexto: {contexto}
-            Pergunta: {pergunta}
+        elif "USA_RAG" in decisao or "GERAL" in decisao:
+            prompt_final = ChatPromptTemplate.from_template("""
+            Você é o VERSO, uma inteligência especializada em recuperação de conhecimento e assistência técnica.
+            Sua autoridade vem do CONTEXTO LOCAL fornecido.
+
+            REGRAS DE OURO:
+            1. NUNCA diga que é "apenas um modelo de linguagem" ou que não tem acesso a arquivos. Você tem acesso ao contexto abaixo.
+            2. Prioridade Máxima: Se o CONTEXTO LOCAL contiver a resposta, use-a. Ignore definições externas se houver conflito com o manual.
+            3. Tom: Seja um professor direto, didático e brutalmente honesto. Sem saudações desnecessárias.
+            4. Anonimato: Refira-se à pessoa apenas como "Usuário" ou responda diretamente sem usar nomes, a menos que o nome seja explicitamente fornecido na conversa atual.
+            5. Se o usuário apenas agradecer ou fizer um comentário de encerramento, responda de forma breve e aguarde a próxima instrução, sem iniciar novos processos sozinho.
+            CONTEXTO LOCAL: {contexto}
+            PERGUNTA: {pergunta}
             """)
             chain = prompt_final | self.llm | StrOutputParser()
             return chain.invoke({"pergunta": pergunta, "contexto": contexto_bruto})
         else:
-            return "Informação não encontrada no manual ou memória."
+            return "Não consegui processar essa informação com base nos meus protocolos atuais."
 if __name__ == "__main__":
     verso = VersoEngine()
     historico_sessao = []
