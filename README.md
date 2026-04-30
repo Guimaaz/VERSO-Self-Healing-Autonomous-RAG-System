@@ -1,10 +1,12 @@
 Project VERSO
 Self-Healing Autonomous RAG System
 
-VERSO is a localized Intelligence Engine built to bridge the gap between static technical manuals and dynamic user memory. Powered by Ollama, it utilizes a dual-layer retrieval strategy to ensure high-fidelity responses, preventing hallucinations through a "Judge" mechanism and "Self-Healing" search loops.
+VERSO is a in-home ( local ) model that will remember your conversation, if you want a in-home model that will not forget about the topics that you had discussed with him, you should try VERSO :)
+
+VERSO is a localized Intelligence Engine built to bridge the gap between static technical manuals and dynamic user memory. Powered by Ollama, it utilizes a dual-layer retrieval strategy to ensure high-fidelity responses, preventing hallucinations through a "Judge" mechanism and "Self-Healing" search loops
 Architecture Overview
 
-VERSO operates on a Decoupled RAG Pipeline, separating the heavy processing of knowledge from the real-time execution of the AI.
+VERSO operates on a Decoupled RAG Pipeline, separating the heavy processing of knowledge from the real-time execution of the AI
 
     The Ingestor (ingest.py): The "Restorer." It processes Markdown files using a hierarchical split strategy (MarkdownHeader + RecursiveCharacter) to preserve semantic anchors.
 
