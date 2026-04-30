@@ -3,10 +3,10 @@ from langchain_ollama import OllamaEmbeddings, ChatOllama
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from prompts import prompt_sumarizado
+from prompts import prompt_summarized,final_prompt_file,judge_prompt_file
 
 db_path = "./backend/db"
-memoria_path = "./backend/Data/Md/Memoria.md"
+memory_path = "./backend/Data/Md/memory.md"
 
 class VersoEngine:
     def __init__(self):
@@ -17,100 +17,75 @@ class VersoEngine:
             embedding_function=self.embeddings,
             collection_name="verso"
         )
-        print(" Verso Engine: Banco de dados conectado.")
+        print(" Verso Engine: Connected with database")
 
-    def modelo_salvamento(self, fato, id_conversa="sessão"):
-        with open(memoria_path, "a", encoding="utf-8") as memoria_open:
-            memoria_open.write(f"\n## {id_conversa}\n")
-            memoria_open.write(f"- {fato}\n")
+    def commit_memory(self, fact, id_conversation ="session"):
+        with open(memory_path, "a", encoding="utf-8") as memory_open:
+            memory_open.write(f"\n## {id_conversation }\n")
+            memory_open.write(f"- {fact}\n")
 
         self.vectorstore.add_texts(
-            texts=[fato],
-            metadatas=[{"origem_conhecimento": id_conversa}]
+            texts=[fact],
+            metadatas=[{"origin_of_knowledge": id_conversation }]
         )
-        print(f"Memória atualizada: {fato[:50]}...")
-    def sumarizar_e_salvar(self, historico):
-        if not historico:
+        print(f"Memória atualizada: {fact[:50]}...")
+    def summarize_and_save(self, history):
+        if not history:
             return
 
-        print("Verso: Sumarizando conversa para memória de longo prazo...")
+        print("Verse: Summarizing the conversation for long-term memory...")
         
-        prompt_sumarizacao = ChatPromptTemplate.from_template(prompt_sumarizado)
+        prompt_summarization = ChatPromptTemplate.from_template(prompt_summarized)
         
-        chain = prompt_sumarizacao | self.llm | StrOutputParser()
-        resumo = chain.invoke({"historico": historico})
+        chain = prompt_summarization | self.llm | StrOutputParser()
+        resume = chain.invoke({"history": history})
         
-        self.modelo_salvamento(resumo, id_conversa="Resumo_Sessao_" + os.urandom(2).hex())
+        self.commit_memory(resume, id_conversation ="resume_session" + os.urandom(2).hex())
 
-    def buscar_conhecimento(self, pergunta):
-        docs = self.vectorstore.similarity_search(pergunta, k=3)
+    def search_for_knowledge(self, question):
+        docs = self.vectorstore.similarity_search(question, k=3)
         return docs
 
-    def juiz_de_contexto(self, pergunta, contexto):
-        prompt_juiz = ChatPromptTemplate.from_template("""
-        Avalie se a pergunta refere-se a informações específicas de projetos, decisões anteriores ou dados contidos no manual/memória local.
-
-        - Se a resposta estiver no contexto: Responda 'USA_RAG'.
-        - Se a pergunta for geral (ciência, código, etc) e não houver nada no contexto: Responda 'GERAL'.
-        - Se for sobre o histórico do usuário/projeto mas o contexto estiver vazio: Responda 'NAO_SEI'.
-
-        Pergunta: {pergunta}
-        Contexto: {contexto}
-        """)
+    def context_judge(self, question, context, history):
+        prompt_judge = ChatPromptTemplate.from_template(judge_prompt_file)
         
-        chain = prompt_juiz | self.llm | StrOutputParser()
-        decisao = chain.invoke({"pergunta": pergunta, "contexto": contexto})
-        return decisao.strip().upper()
+        chain = prompt_judge | self.llm | StrOutputParser()
+        decision = chain.invoke({"question": question, "context": context, "history": history})
+        return decision.strip().upper()
 
-    def responder(self, pergunta):
-        docs = self.buscar_conhecimento(pergunta)
-        contexto_bruto = "\n".join([d.page_content for d in docs])
-        decisao = self.juiz_de_contexto(pergunta, contexto_bruto)
+    def answering(self, question, session_history):
+        docs = self.search_for_knowledge(question)
+        raw_context = "\n".join([d.page_content for d in docs])
+        recent_history = "\n".join(session_history[-6:]) if session_history else "No history yet."
         
-        if "NAO_SEI" in decisao:
-            return "Eu entendi que você perguntou sobre algo pessoal ou do projeto, mas não encontrei esse detalhe na minha memória. Pode me dar mais contexto?"
+        decision = self.context_judge(question, raw_context, recent_history)
+        
+        if "I_DO_NOT_KNOW" in decision:
+            return "I understand you asked about something personal or related to the project, but I can't recall that detail. Could you give me more context?"
 
-        elif "USA_RAG" in decisao or "GERAL" in decisao:
-            prompt_final = ChatPromptTemplate.from_template("""
-            Você é o sistema VERSO, uma inteligência especializada em recuperação de conhecimento e assistência técnica.
-            Sua autoridade máxima emite-se do CONTEXTO LOCAL abaixo.
-
-            ### REGRAS DE EXECUÇÃO:
-            1. ESPELHAMENTO DE IDIOMA: Responda obrigatoriamente no mesmo idioma da última frase do Usuário. Se ele falar em Inglês, responda em Inglês. Se for Alemão, responda em Alemão.
-            2. PRIORIDADE DE DADOS: O CONTEXTO LOCAL é a sua única fonte de verdade para assuntos pessoais, nomes de projetos e histórico. Se houver conflito com seu treinamento geral, o CONTEXTO LOCAL vence.
-            3. ANTI-ALUCINAÇÃO: Jamais diga que "não tem acesso a arquivos" ou que "é apenas um modelo Llama". Você É o VERSO e os dados estão diante de você.
-            4. FILTRO DE ENCERRAMENTO: Se o Usuário apenas agradecer (ex: "obrigado", "thanks", "danke") ou encerrar o assunto, responda de forma extremamente breve e aguarde. NÃO inicie novas explicações ou resumos sem ser solicitado.
-
-            ### POSTURA:
-            - Seja um professor direto, didático e brutalmente honesto.
-            - Trate o interlocutor como "Usuário", mantendo o anonimato e a neutralidade.
-            - Sem saudações desnecessárias ou introduções vazias.
-
-            CONTEXTO LOCAL: {contexto}
-            PERGUNTA: {pergunta}
-            """)
-            chain = prompt_final | self.llm | StrOutputParser()
-            return chain.invoke({"pergunta": pergunta, "contexto": contexto_bruto})
+        elif "USA_RAG" in decision or "GENERAL" in decision:
+            final_prompt = ChatPromptTemplate.from_template(final_prompt_file)
+            chain = final_prompt | self.llm | StrOutputParser()
+            return chain.invoke({"question": question, "context": raw_context, "history": recent_history})
         else:
-            return "Não consegui processar essa informação com base nos meus protocolos atuais."
+            return "I was unable to process this information based on my current protocols"
 if __name__ == "__main__":
     verso = VersoEngine()
-    historico_sessao = []
+    session_history = []
     
-    print("\n VERSO SYSTEM ONLINE | type : sair, exit or quit to finishe the session and summarize the conversations ")
+    print("\n VERSO SYSTEM ONLINE | type : exit to finish the session and summarize the conversation ")
 
     while True:
-        pergunta = input("👤 You: ")
+        question = input("👤 You: ")
         
-        if pergunta.lower() in ["sair", "exit", "quit"]:
-            if historico_sessao:
-                verso.sumarizar_e_salvar("\n".join(historico_sessao))
-            print(" Verso: Memória sincronizada. Encerrando...")
+        if question.lower() in ["exit"]:
+            if session_history:
+                verso.summarize_and_save("\n".join(session_history))
+            print(" Verso: Memory synchronized. Closing")
             break
+        answer = verso.answering(question, session_history)
         
-        resposta = verso.responder(pergunta)
+        session_history.append(f"User: {question}")
+        session_history.append(f"AI: {answer}")
         
-        historico_sessao.append(f"User: {pergunta}")
-        historico_sessao.append(f"AI: {resposta}")
-        
-        print(f"\nVerso: {resposta}\n")
+        print(f"\nVerso: {answer}\n")

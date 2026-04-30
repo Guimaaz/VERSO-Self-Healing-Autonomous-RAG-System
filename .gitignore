@@ -8,6 +8,6 @@ db
 
 API
 
-prompts.py
-
 .venv-1
+
+__pycache__
