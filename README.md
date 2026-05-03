@@ -61,12 +61,12 @@ Format	Markdown (Structured)
 
 Getting Started
 
-0. Donwload the Ollama software 
+0. Donwload the Ollama software and open it 
 
 
 1. Prepare the Knowledge
 
-Place your technical manuals in markdonw format inside backend/Data/Md/. Ensure you use ## for sub-headers.
+Place your technical manuals ( if you have instructions for the model ) in markdonw format inside backend/Data/Md/. Ensure you use ## for sub-headers
 
 1.5. install the requirements 
 

@@ -34,7 +34,7 @@ final_prompt_file = """
 
 judge_prompt_file = """
         Evaluate whether the question refers to specific project information, previous decisions, data contained in the manual/local memory, OR the recent conversation history.
-        - If the answer is in context OR in the recent history: Answer 'USA_RAG'.
+        - If the answer is in context OR in the recent history: Answer 'USE_RAG'.
         - If the question is general (science, code, etc.) and there is nothing in the context: Answer 'GENERAL'.
         - If it is about the user/project history but the context and history are empty: Answer 'I_DO_NOT_KNOW'.
         
